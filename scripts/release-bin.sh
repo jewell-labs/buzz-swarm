@@ -8,21 +8,22 @@ CPU="$(uname -m)"
 [[ "$CPU" == "arm64" ]] && CPU="aarch64"
 ASSET="swarm-${CPU}-apple-darwin"
 
-echo "→ cargo build --release (strip)"
-export RUSTFLAGS="-C strip=symbols -C debuginfo=0"
+echo "→ cargo build --release (max strip)"
+export CARGO_PROFILE_RELEASE_STRIP="symbols"
+export CARGO_PROFILE_RELEASE_DEBUG="0"
+export RUSTFLAGS="-C strip=symbols -C debuginfo=0 -C link-arg=-Wl,-S"
 cargo build --release -p swarm-cli
 cp "target/release/swarm" "/tmp/${ASSET}"
 chmod +x "/tmp/${ASSET}"
-# Extra strip if available
-command -v strip >/dev/null && strip -x "/tmp/${ASSET}" 2>/dev/null || true
+# Aggressive strip of local symbols
+if command -v strip >/dev/null; then
+  strip -xS "/tmp/${ASSET}" 2>/dev/null || strip -x "/tmp/${ASSET}" 2>/dev/null || true
+fi
 echo "→ $(wc -c </tmp/${ASSET}) bytes"
 
-# Refuse to ship if personal path / known tunnel UUID leak into binary
-if strings "/tmp/${ASSET}" | grep -E '/Users/[^/]+/' | grep -vE 'rustc|cargo/registry|lib/rustlib' | head -5 | grep -q .; then
-  echo "warn: binary may contain local path strings (debug metadata)" >&2
-fi
-if strings "/tmp/${ASSET}" | grep -qE '2f5f3ce5-daef-4ed0-91e6-6183ff0ae150|privaterelay|09f27fe672991450'; then
-  echo "FATAL: binary contains forbidden personal/fleet identifiers" >&2
+# Generic leak checks (no fleet-specific constants in this script)
+if strings "/tmp/${ASSET}" | grep -Eiq 'privaterelay\.appleid\.com|BEGIN (RSA |OPENSSH )?PRIVATE KEY|CLOUDFLARE_API_TOKEN='; then
+  echo "FATAL: binary may contain secrets/private material" >&2
   exit 1
 fi
 
