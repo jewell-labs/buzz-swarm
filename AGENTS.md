@@ -26,3 +26,10 @@ Infer from `~/.config/host-community/*.secret_key` basenames or env `SWARM_HOST_
 cargo test -p swarm-core
 cargo run -p swarm-cli -- up
 ```
+
+## Fleet default (locked)
+
+- Relay: **Block free hosted community URL** (not LAN-only, not CF tunnel) for iOS ↔ Mac agents off-LAN.
+- Cloudflare: **optional later** (self-host edge / private previews).
+- GitHub: **not required** — use community git/artifacts.
+- Agent compute stays on each Mac; relay is bus + storage.

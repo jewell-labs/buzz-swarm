@@ -80,6 +80,33 @@ swarm paths
 
 Public / LAN health URLs come from **your** config (`relay.url`, env), never a hardcoded third-party domain.
 
+## Recommended path (2–4 weeks)
+
+**Use Block’s free hosted community** as the relay so **iOS (cellular) can talk to Mac agents anytime**.
+
+```text
+iOS  ──https──►  <name>.communities.buzz.xyz  ◄──  mac-studio / macbook-pro agents
+```
+
+| Need | Free hosted community | Cloudflare Tunnel |
+|------|----------------------|-------------------|
+| iOS ↔ agents off-LAN | Yes (both dial out to Block) | Only if you self-host the relay |
+| Agents + git/artifacts, no GitHub | Yes (on community) | Optional edge later |
+| Interactive app previews on your domain | Not a product path yet | Self-host + edge later |
+
+**Cloudflare is optional** — inventory may detect a tunnel; messaging does **not** require one.
+
+Non-interactive example (hosted community):
+
+```bash
+swarm setup --yes \
+  --host-username mac-studio \
+  --relay-role standby \
+  --relay-url https://YOUR.communities.buzz.xyz
+```
+
+(Use the same `--relay-url` on every host and in the iOS app.)
+
 ## Privacy
 
 See [SECURITY.md](SECURITY.md). No secrets in the repo or release binaries.
