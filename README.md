@@ -1,115 +1,80 @@
 # buzz-swarm
 
-Self-hosted **[Buzz](https://github.com/block/buzz)** on macOS for small **shared-compute swarms** (always-on host + laptops).
+macOS host inventory + install/uninstall for a **multi-Mac Buzz fleet**.
 
-One CLI: **discover → inventory → (later) install / uninstall**, with a full manifest of everything the tool manages.
+Buzz product install, Desktop, CLI, relay, shared compute, and agents are **not documented here** — use Block’s SSOT:
 
-**Not** a mesh product. Does **not** fork Buzz server source — only host automation around the official compose/CLI.
+| Topic | Official docs |
+|-------|----------------|
+| Product / install | [block/buzz](https://github.com/block/buzz) · [README](https://github.com/block/buzz/blob/main/README.md) |
+| Hosted community | [buzz.xyz](https://buzz.xyz) (create/join community; use that URL as relay) |
+| Self-host compose | [block/buzz `deploy/compose`](https://github.com/block/buzz/tree/main/deploy/compose) |
+| Shared compute / local models | [docs/buzz-shared-compute-dev.md](https://github.com/block/buzz/blob/main/docs/buzz-shared-compute-dev.md) |
+| CLI (`buzz …`) | ship with Buzz Desktop / releases — `buzz --help` |
+| Architecture | [ARCHITECTURE.md](https://github.com/block/buzz/blob/main/ARCHITECTURE.md) |
 
-## Install (any Mac, no clone)
+This repo **does not fork** Buzz. It only automates **fleet host inventory** around whatever Buzz setup you already run.
+
+---
+
+## What buzz-swarm adds
+
+1. **`swarm` CLI** — discover, plan, adopt, status, uninstall with a reverse-able **manifest**
+2. **Non-interactive setup** — every field is a flag **and** env var (`--yes` never prompts)
+3. **Multi-host inventory** — primary vs standby roles, path scanning, optional tunnel *detection*
+4. **Safe reverse** — `swarm uninstall` clears what the manifest owns (standard keeps keys/compose volumes)
+
+It does **not** replace Buzz Desktop, compose bootstrap, model download, or community membership.
+
+---
+
+## Install (this tool only)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/jewell-labs/buzz-swarm/main/scripts/install.sh | bash
 ```
 
-Install only (skip auto inventory):
+Skip auto inventory:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/jewell-labs/buzz-swarm/main/scripts/install.sh | SWARM_SKIP_UP=1 bash
 ```
 
-## Setup: interactive **or** fully non-interactive
-
-### Interactive wizard
+## Commands
 
 ```bash
-swarm setup
+swarm setup           # wizard, or flags + --yes
+swarm up              # discover → fixes → adopt → status
+swarm plan
+swarm discover | adopt | status | paths
+swarm uninstall --dry-run
+swarm uninstall --yes
 ```
 
-Prompts for host username, relay role, URLs, compose dir, fixes. Saves `~/.config/buzz-swarm/plan.json`, then runs inventory.
-
-### Non-interactive (CI / automation)
-
-Every wizard field has a flag **and** env var. Use `--yes` (alias `--non-interactive`) to never prompt; missing **required** fields error out.
+### Non-interactive
 
 ```bash
 swarm setup --yes \
   --host-username mac-studio \
   --relay-role primary \
-  --relay-url http://127.0.0.1:3000 \
-  --public-relay-url https://buzz.example.com \
-  --compose-dir "$HOME/buzz-ops/compose"
-
-# inventory only (same flags)
-swarm up --yes --host-username macbook-pro --relay-role standby
-```
-
-| Flag | Env | Required |
-|------|-----|----------|
-| `--host-username` | `SWARM_HOST_USERNAME` | yes |
-| `--relay-role` `primary\|standby\|cold` | `SWARM_RELAY_ROLE` | yes |
-| `--relay-url` | `SWARM_RELAY_URL` | no |
-| `--public-relay-url` | `SWARM_PUBLIC_RELAY_URL` | no |
-| `--compose-dir` | `BUZZ_COMPOSE_DIR` | no |
-| `--apply-fixes` / omit | `SWARM_APPLY_FIXES` | no (default true) |
-| `--yes` | — | skips all prompts |
-| `--plan-only` | — | write plan.json only |
-| `--plan PATH` | — | load plan from file |
-
-## Commands
-
-```bash
-swarm setup           # wizard (or flags + --yes)
-swarm up              # discover → fixes → adopt → status
-swarm plan            # show saved plan
-swarm discover
-swarm adopt
-swarm status
-swarm paths
-```
-
-## What it looks for (generic)
-
-| Area | Examples (discovered, not required) |
-|------|-------------------------------------|
-| Buzz compose | `~/buzz-ops/compose` or `BUZZ_COMPOSE_DIR` |
-| Host identity | `~/.config/host-community/` keys + `relay.url` |
-| Tunnel | any `~/.cloudflared/*.token`, running `cloudflared` |
-| Services | LaunchAgents matching `com.buzz-swarm.*` |
-| Docker | names containing `buzz` |
-
-Public / LAN health URLs come from **your** config (`relay.url`, env), never a hardcoded third-party domain.
-
-## Recommended path (2–4 weeks)
-
-**Use Block’s free hosted community** as the relay so **iOS (cellular) can talk to Mac agents anytime**.
-
-```text
-iOS  ──https──►  <name>.communities.buzz.xyz  ◄──  mac-studio / macbook-pro agents
-```
-
-| Need | Free hosted community | Cloudflare Tunnel |
-|------|----------------------|-------------------|
-| iOS ↔ agents off-LAN | Yes (both dial out to Block) | Only if you self-host the relay |
-| Agents + git/artifacts, no GitHub | Yes (on community) | Optional edge later |
-| Interactive app previews on your domain | Not a product path yet | Self-host + edge later |
-
-**Cloudflare is optional** — inventory may detect a tunnel; messaging does **not** require one.
-
-Non-interactive example (hosted community):
-
-```bash
-swarm setup --yes \
-  --host-username mac-studio \
-  --relay-role standby \
   --relay-url https://YOUR.communities.buzz.xyz
 ```
 
-(Use the same `--relay-url` on every host and in the iOS app.)
+| Flag | Env |
+|------|-----|
+| `--host-username` | `SWARM_HOST_USERNAME` |
+| `--relay-role` | `SWARM_RELAY_ROLE` |
+| `--relay-url` | `SWARM_RELAY_URL` |
+| `--public-relay-url` | `SWARM_PUBLIC_RELAY_URL` |
+| `--compose-dir` | `BUZZ_COMPOSE_DIR` |
+| `--yes` | — |
 
-## Privacy
+State: `~/.config/buzz-swarm/{manifest,plan,history}.jsonl?`  
+See [docs/ADOPT.md](docs/ADOPT.md), [docs/UNINSTALL.md](docs/UNINSTALL.md), [SECURITY.md](SECURITY.md).
 
-See [SECURITY.md](SECURITY.md). No secrets in the repo or release binaries.
+## Fleet note (our default)
+
+For iOS off-LAN + Mac agents: use a **hosted community URL** from [buzz.xyz](https://buzz.xyz) as the same `SWARM_RELAY_URL` / Buzz client relay on every device. Cloudflare Tunnel is **optional** and only relevant if you self-host a public edge — see Cloudflare’s tunnel docs, not this README.
 
 ## License
 

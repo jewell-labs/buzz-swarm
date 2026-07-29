@@ -1,14 +1,18 @@
-# Uninstall contract
+# Uninstall (buzz-swarm)
 
-`swarm uninstall` (upcoming) reverses the **manifest** only.
+```bash
+swarm uninstall --dry-run
+swarm uninstall --yes
+swarm uninstall --yes --purge   # also keys, tunnel dir, compose down -v, brew if marked ours
+```
 
-## Order (planned)
+## Standard vs purge
 
-1. LaunchAgents owned by this tool
-2. Cloudflare: this host’s connector/hostnames recorded in the manifest (never bulk-delete a DNS zone)
-3. Docker compose `down -v` for owned projects
-4. Brew formulas only if marked `installed_by_us`
-5. Config dirs this tool created
-6. Install root last
+| Mode | Removes | Keeps |
+|------|---------|--------|
+| **Standard** | Processes, LaunchAgents we own, `~/host-agent` copies, `~/.config/buzz-swarm/*` | host-community keys, compose volumes, brew, cloudflared creds |
+| **Purge** | Standard + secrets dirs + compose `-v` + brew if `installed_by_us` | Zone registration (never bulk-deleted) |
 
-Always: `swarm uninstall --dry-run` first.
+Never deletes `~/mesh/scripts/**` (repo trees).
+
+Buzz product uninstall / Desktop removal: follow [block/buzz](https://github.com/block/buzz) and macOS app uninstall — not this tool.

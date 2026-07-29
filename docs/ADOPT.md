@@ -1,4 +1,6 @@
-# Adopt an existing host
+# Adopt (buzz-swarm)
+
+Import whatever is already on this Mac into a reverse-able inventory.
 
 ```bash
 swarm discover
@@ -6,14 +8,16 @@ swarm adopt
 swarm status
 ```
 
-## Paths scanned (generic)
+Buzz relay install and membership: [block/buzz](https://github.com/block/buzz) / [buzz.xyz](https://buzz.xyz).
 
-| Path / signal | Meaning |
-|---------------|---------|
-| `$BUZZ_COMPOSE_DIR` or `~/buzz-ops/compose` | Docker compose for Buzz |
-| `~/.config/host-community/` | Host keys, `relay.url` |
-| `~/.cloudflared/*.token`, `cert.pem` | Tunnel credentials (presence only) |
-| `~/Library/LaunchAgents/com.buzz-swarm.*` | Services this tool owns |
-| Docker names containing `buzz` | Relay stack visibility |
+## Paths this tool scans (inventory only)
 
-Nothing outside your machine is contacted except optional **health URLs you configured**.
+| Path / signal | Why we care |
+|---------------|-------------|
+| `$BUZZ_COMPOSE_DIR` or `~/buzz-ops/compose` | Optional self-host compose tree |
+| `~/.config/host-community/` | Fleet keys + `relay.url` if you keep them here |
+| `~/.cloudflared/*` | Tunnel *presence* (optional edge) |
+| `~/Library/LaunchAgents/com.buzz-swarm.*` | Services **we** install |
+| Docker names containing `buzz` | Visibility for status |
+
+No network calls except health URLs you configured.

@@ -1,26 +1,29 @@
-# Architecture
+# Architecture (buzz-swarm only)
 
 ```text
-swarm CLI  ──►  swarm-core  ──►  docker / brew / launchctl / cloudflared / local files
+swarm CLI  ──►  swarm-core  ──►  local inventory (docker/brew/launchctl/files)
                     │
                     ▼
          ~/.config/buzz-swarm/manifest.json
 ```
 
-## Phase A (current)
+Buzz relay, Desktop, agents, and MeshLLM are **out of scope** here — see:
 
-- Discover existing Buzz-related host setup.
-- Safe auto-fixes for known residue (e.g. forbidden side containers).
-- Write inventory for future install/uninstall.
-- One **primary** relay per community; other hosts are **standby**.
+- [block/buzz ARCHITECTURE.md](https://github.com/block/buzz/blob/main/ARCHITECTURE.md)
+- [buzz-shared-compute-dev.md](https://github.com/block/buzz/blob/main/docs/buzz-shared-compute-dev.md)
 
-## Config sources (in order)
+## What this layer does
+
+| Step | Ours |
+|------|------|
+| Discover | Scan local paths/processes for fleet residue |
+| Plan | `plan.json` from wizard or flags/env |
+| Adopt | Write reverse-able component list |
+| Status | Health probes using **your** configured relay URL |
+| Uninstall | Reverse owned components (see [UNINSTALL.md](./UNINSTALL.md)) |
+
+## Config sources (ours)
 
 1. Env: `SWARM_RELAY_URL`, `SWARM_PUBLIC_RELAY_URL`, `SWARM_HOST_USERNAME`, `BUZZ_COMPOSE_DIR`
-2. `~/.config/host-community/relay.url`
-3. Local probes: `http://127.0.0.1:3000/health`
-
-## Fleet default
-
-Preferred `SWARM_RELAY_URL` / client relay: **Block free hosted community** (public HTTPS).  
-Tunnel / self-hosted compose: optional lab path, not required for iOS messaging.
+2. Paths under `~/.config/host-community/` if present (created by your Buzz/key setup)
+3. Local probe: `http://127.0.0.1:3000/health` only as a local-primary signal
