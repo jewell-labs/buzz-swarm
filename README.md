@@ -18,12 +18,52 @@ Install only (skip auto inventory):
 curl -fsSL https://raw.githubusercontent.com/jewell-labs/buzz-swarm/main/scripts/install.sh | SWARM_SKIP_UP=1 bash
 ```
 
+## Setup: interactive **or** fully non-interactive
+
+### Interactive wizard
+
+```bash
+swarm setup
+```
+
+Prompts for host username, relay role, URLs, compose dir, fixes. Saves `~/.config/buzz-swarm/plan.json`, then runs inventory.
+
+### Non-interactive (CI / automation)
+
+Every wizard field has a flag **and** env var. Use `--yes` (alias `--non-interactive`) to never prompt; missing **required** fields error out.
+
+```bash
+swarm setup --yes \
+  --host-username mac-studio \
+  --relay-role primary \
+  --relay-url http://127.0.0.1:3000 \
+  --public-relay-url https://buzz.example.com \
+  --compose-dir "$HOME/buzz-ops/compose"
+
+# inventory only (same flags)
+swarm up --yes --host-username macbook-pro --relay-role standby
+```
+
+| Flag | Env | Required |
+|------|-----|----------|
+| `--host-username` | `SWARM_HOST_USERNAME` | yes |
+| `--relay-role` `primary\|standby\|cold` | `SWARM_RELAY_ROLE` | yes |
+| `--relay-url` | `SWARM_RELAY_URL` | no |
+| `--public-relay-url` | `SWARM_PUBLIC_RELAY_URL` | no |
+| `--compose-dir` | `BUZZ_COMPOSE_DIR` | no |
+| `--apply-fixes` / omit | `SWARM_APPLY_FIXES` | no (default true) |
+| `--yes` | — | skips all prompts |
+| `--plan-only` | — | write plan.json only |
+| `--plan PATH` | — | load plan from file |
+
 ## Commands
 
 ```bash
-swarm up          # discover → safe fixes → write manifest → status (progress)
-swarm discover    # probe only
-swarm adopt       # write ~/.config/buzz-swarm/manifest.json
+swarm setup           # wizard (or flags + --yes)
+swarm up              # discover → fixes → adopt → status
+swarm plan            # show saved plan
+swarm discover
+swarm adopt
 swarm status
 swarm paths
 ```
@@ -35,22 +75,14 @@ swarm paths
 | Buzz compose | `~/buzz-ops/compose` or `BUZZ_COMPOSE_DIR` |
 | Host identity | `~/.config/host-community/` keys + `relay.url` |
 | Tunnel | any `~/.cloudflared/*.token`, running `cloudflared` |
-| Services | LaunchAgents matching `com.buzz-swarm.*` (and legacy labels if present) |
-| Docker | compose project names containing `buzz` |
+| Services | LaunchAgents matching `com.buzz-swarm.*` |
+| Docker | names containing `buzz` |
 
-Public / LAN health URLs come from **your** config (`relay.url`, env), never from a hardcoded third-party domain.
+Public / LAN health URLs come from **your** config (`relay.url`, env), never a hardcoded third-party domain.
 
 ## Privacy
 
-- No accounts, API tokens, or private keys are shipped in this repo or release binaries.
-- The tool only reads local files and process state on the machine where you run it.
-- See [SECURITY.md](SECURITY.md).
-
-## Docs
-
-- [Architecture](docs/ARCHITECTURE.md)
-- [Adopt existing hosts](docs/ADOPT.md)
-- [Uninstall contract](docs/UNINSTALL.md)
+See [SECURITY.md](SECURITY.md). No secrets in the repo or release binaries.
 
 ## License
 

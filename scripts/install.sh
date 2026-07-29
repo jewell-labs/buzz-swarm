@@ -76,6 +76,20 @@ if [[ -n "${SWARM_SKIP_UP:-}" ]]; then
   exit 0
 fi
 
-log "Running: swarm up"
-echo
-swarm up
+# Forward args after "--" or SWARM_SETUP_ARGS for non-interactive
+# Example: curl ... | bash -s -- --yes --host-username mac-studio --relay-role primary
+if [[ -n "${SWARM_SETUP_ARGS:-}" ]]; then
+  # shellcheck disable=SC2206
+  EXTRA=( $SWARM_SETUP_ARGS )
+else
+  EXTRA=("$@")
+fi
+if [[ ${#EXTRA[@]} -gt 0 ]]; then
+  log "Running: swarm up ${EXTRA[*]}"
+  echo
+  swarm up "${EXTRA[@]}"
+else
+  log "Running: swarm up  (interactive if TTY; pass --yes + flags for CI)"
+  echo
+  swarm up
+fi
