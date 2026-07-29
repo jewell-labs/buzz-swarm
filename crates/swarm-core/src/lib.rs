@@ -8,6 +8,7 @@ pub mod paths;
 pub mod plan;
 pub mod progress;
 pub mod status;
+pub mod uninstall;
 
 pub use discover::{discover, discover_with_progress, Discovery};
 pub use error::{Error, Result};
@@ -23,3 +24,6 @@ pub use progress::{
     append_history, CollectSink, HistorySink, NullSink, ProgressEvent, ProgressSink, ProgressStatus,
 };
 pub use status::{compute_status, CheckLevel, StatusReport};
+pub use uninstall::{
+    execute_uninstall, plan_uninstall_actions, UninstallAction, UninstallMode, UninstallReport,
+};

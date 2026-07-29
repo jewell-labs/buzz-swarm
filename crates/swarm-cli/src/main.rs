@@ -7,8 +7,9 @@ use clap::{Parser, Subcommand, ValueEnum};
 use swarm_core::paths::HostPaths;
 use swarm_core::{
     adopt_from_discovery, apply_safe_fixes, compute_status, discover, discover_with_progress,
-    load_manifest, load_plan, parse_relay_role, save_manifest, save_plan, CheckLevel, HistorySink,
-    NullSink, Paths, ProgressEvent, ProgressSink, ProgressStatus, RelayRole, SetupPlan,
+    execute_uninstall, load_manifest, load_plan, parse_relay_role, save_manifest, save_plan,
+    CheckLevel, HistorySink, NullSink, Paths, ProgressEvent, ProgressSink, ProgressStatus,
+    RelayRole, SetupPlan, UninstallMode,
 };
 use wizard::{resolve_plan, stdin_is_tty, SetupFlags};
 
@@ -122,6 +123,18 @@ enum Cmd {
     Paths,
     /// Print current plan.json
     Plan,
+    /// Reverse owned manifest components (standard keeps keys/volumes)
+    Uninstall {
+        /// Print actions only
+        #[arg(long)]
+        dry_run: bool,
+        /// Also remove host-community, tunnel creds, compose volumes, brew
+        #[arg(long)]
+        purge: bool,
+        /// Required unless dry-run
+        #[arg(long = "yes", visible_alias = "non-interactive")]
+        yes: bool,
+    },
 }
 
 fn main() {
@@ -137,6 +150,9 @@ fn main() {
         Cmd::Status => cmd_status(&paths, cli.json, cli.quiet),
         Cmd::Paths => cmd_paths(&paths, cli.json),
         Cmd::Plan => cmd_plan(&paths, cli.json),
+        Cmd::Uninstall { dry_run, purge, yes } => {
+            cmd_uninstall(&paths, dry_run, purge, yes, cli.json, cli.quiet)
+        }
     };
     std::process::exit(code);
 }
@@ -440,6 +456,67 @@ fn cmd_plan(paths: &Paths, json: bool) -> i32 {
         }
         Err(e) => {
             eprintln!("no plan yet ({e}); run: swarm setup");
+            1
+        }
+    }
+}
+
+fn cmd_uninstall(
+    paths: &Paths,
+    dry_run: bool,
+    purge: bool,
+    yes: bool,
+    json: bool,
+    quiet: bool,
+) -> i32 {
+    if !dry_run && !yes {
+        eprintln!("uninstall: pass --yes to execute (or --dry-run)");
+        return 2;
+    }
+    let manifest = match load_manifest(&paths.manifest) {
+        Ok(m) => m,
+        Err(e) => {
+            eprintln!("uninstall: no manifest ({e}); nothing to reverse");
+            return 1;
+        }
+    };
+    let mode = if purge {
+        UninstallMode::Purge
+    } else {
+        UninstallMode::Standard
+    };
+    let mut sink = make_sink(paths, json, quiet);
+    match execute_uninstall(paths, &manifest, mode, dry_run, sink.as_mut()) {
+        Ok(report) => {
+            if json {
+                println!("{}", serde_json::to_string_pretty(&report).unwrap());
+            } else if !quiet {
+                println!(
+                    "uninstall {} mode={:?} actions={} errors={} residuals={}",
+                    if dry_run { "DRY-RUN" } else { "DONE" },
+                    report.mode,
+                    report.actions.len(),
+                    report.errors.len(),
+                    report.residuals.len()
+                );
+                for a in &report.actions {
+                    println!("  - {:?} {}", a.kind, a.target);
+                }
+                for e in &report.errors {
+                    eprintln!("  error: {e}");
+                }
+                for r in &report.residuals {
+                    println!("  residual: {r}");
+                }
+            }
+            if report.errors.is_empty() {
+                0
+            } else {
+                1
+            }
+        }
+        Err(e) => {
+            eprintln!("uninstall failed: {e}");
             1
         }
     }
