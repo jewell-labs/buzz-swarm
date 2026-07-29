@@ -1,0 +1,12 @@
+/target
+**/*.rs.bk
+.DS_Store
+.env
+.env.*
+*.pem
+*.token
+*.secret
+*.key
+.idea/
+.vscode/
+*.log
